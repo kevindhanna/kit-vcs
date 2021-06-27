@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::io;
-use std::io::Error;
-use std::io::ErrorKind;
-use std::io::Write;
-use std::path::Path;
+use std::io::{Error, ErrorKind, Write};
 use std::path::PathBuf;
 use configparser::ini::Ini;
 
@@ -14,32 +11,29 @@ fn concat_str(str1: &str, str2: &str) -> String {
     return string;
 }
 
-pub fn join_path(str1: &str, str2: &str) -> String {
-    concat_str(str1, &concat_str("/", str2))
-}
-
 pub mod repo {
     use super::*;
-    pub fn path(repo: &Repository, name: &str) -> String {
-        join_path(&repo.gitdir, name)
-    }
-
-    pub fn file(repo: &Repository, p: &str, mkdir: bool) -> Result<String, String> {
-        let folders = p.split("/").collect::<Vec<&str>>();
-
-        if let Ok(p) = dir(repo, &folders.join("/"), mkdir) {
-            return Ok(path(repo, &p));
+    pub fn file(repo: &Repository, p: &str, mkdir: bool) -> Result<PathBuf, String> {
+        let mut folders = p.split("/").collect::<Vec<&str>>();
+        let name = folders.pop();
+        if let Ok(mut p) = dir(repo, &folders.join("/"), mkdir) {
+            if let Some(name) = name {
+                p.push(name);
+                return Ok(p);
+            }
         }
         Err("Some err I guess".to_owned())
     }
 
-    pub fn dir(repo: &Repository, p: &str, mkdir: bool) -> Result<String, String> {
-        let p = path(repo, p);
+    pub fn dir(repo: &Repository, name: &str, mkdir: bool) -> Result<PathBuf, String> {
+        let mut p = repo.kitdir.clone();
+        p.push(name);
 
-        if dir_exists(&p) {
-            return Ok(p);
-        } else if file_exists(&p) {
-            return Err(concat_str("Not a directory: ", &p));
+        if p.exists() {
+          if  p.is_dir() {
+              return Ok(p);
+          }
+            return Err(concat_str("Not a directory: ", p.to_str().unwrap()));
         }
 
         if mkdir {
@@ -56,25 +50,30 @@ filemode=false
 bare=false\n")
     }
 
-    pub fn create(path: &str) -> io::Result<()> {
+    pub fn create(path: PathBuf) -> io::Result<()> {
         if let Ok(repo) = Repository::new(path, true) {
-            if !dir_exists(&repo.worktree) {
-                let err = Error::new(ErrorKind::Other, concat_str(path, " is not a directory!"));
+            if !repo.worktree.exists() {
+                std::fs::create_dir_all(&repo.worktree)?
+            }
+            if !repo.worktree.is_dir() {
+                let err = Error::new(ErrorKind::Other, concat_str(repo.workstree_string(), " is not a directory!"));
                 return Err(err);
             }
             if !dir_empty(&repo.worktree) {
-                let err = Error::new(ErrorKind::Other, concat_str(path, " is not a empty!"));
+                let err = Error::new(ErrorKind::Other, concat_str(repo.workstree_string(), " is not a empty!"));
                 return Err(err);
             }
 
             std::fs::create_dir_all(&repo.worktree).unwrap();
             for d in ["branches", "objects", "refs/tags", "refs/heads" ].to_vec() {
-                dir(&repo, d, true).unwrap();
+                match dir(&repo, d, true) {
+                    Ok(_) => {},
+                    Err(s) => { return Err(Error::new(ErrorKind::Other, s)) }
+                };
             }
-
-            create_and_write_file(&repo.gitdir, "description", "Unnamed repository: edit this file 'description' to name the repository.\n")?;
-            create_and_write_file(&repo.gitdir, "HEAD", "ref: refs/heads/master\n")?;
-            create_and_write_file(&repo.gitdir, "config", &default_config())?;
+            create_and_write_file(&repo.kitdir, "description", "Unnamed repository: edit this file 'description' to name the repository.\n")?;
+            create_and_write_file(&repo.kitdir, "HEAD", "ref: refs/heads/master\n")?;
+            create_and_write_file(&repo.kitdir, "config", &default_config())?;
 
             return Ok(())
         }
@@ -82,39 +81,45 @@ bare=false\n")
         Err(err)
     }
 
-    // pub fn find(path: &str, required: bool) -> Repository {
-    //     if let Ok(repo) = Repository::new(path, false) {
-    //         return repo;
-    //     }
-    //     if let Ok(parent) = Path::new(path) {
-
-    //         return find(parent, required);
-    //     }
-    // }
+    pub fn find(path: PathBuf) -> Result<Repository, String> {
+        if path.is_dir() {
+            return Repository::new(path, false);
+        }
+        match path.parent() {
+            Some(parent) => {
+                return find(parent.to_path_buf());
+            },
+            None => {
+                return Err("Not a kit directoy".to_owned());
+            }
+        }
+    }
 
     pub struct Repository {
-        pub worktree: String,
-        pub gitdir: String,
+        pub worktree: PathBuf,
+        pub kitdir: PathBuf,
         conf: HashMap<String, HashMap<String, Option<String>>>
     }
 
     impl Repository {
-        pub fn new(path: &str, force: bool) -> Result<Repository, String> {
-            let worktree = String::from(path);
-            let gitdir = join_path(path, ".kit");
+        pub fn new(path: PathBuf, force: bool) -> Result<Repository, String> {
+            let worktree = path.clone();
+            let mut kitdir = path.clone();
+            kitdir.push(".kit");
             let mut repo = Repository {
                 worktree,
-                gitdir,
+                kitdir,
                 conf: HashMap::new()
             };
 
-            if !(force || dir_exists(&repo.gitdir)) {
-                return Err(concat_str("Path is not a Kit Repository: ", path));
+            if !(force || repo.kitdir.exists()) {
+                return Err(concat_str("Path is not a Kit Repository: ", "path"));
             }
 
             let mut parser = Ini::new();
-            let cf = repo::path(&repo, "config");
-            if file_exists(&cf) {
+            let mut cf = repo.worktree.clone();
+            cf.push("config");
+            if cf.is_file() {
                 let conf = parser.load(cf)?;
                 repo.conf = conf;
             } else if !force {
@@ -132,32 +137,25 @@ bare=false\n")
 
             return Ok(repo);
         }
+
+        pub fn workstree_string(&self) -> &str {
+            self.worktree.to_str().unwrap()
+        }
+
+        pub fn kitdir_string(&self) -> &str {
+            self.kitdir.to_str().unwrap()
+        }
     }
 }
 
-pub fn dir_exists(path: &String) -> bool {
-    return Path::new(path).is_dir();
-    // if let Ok(path_metadata) = fs::metadata(&dir) {
-        // return path_metadata.is_dir();
-    // }
-    // return false;
-
+pub fn dir_empty(path: &PathBuf) -> bool {
+    path.read_dir().map(|mut i| i.next().is_none()).unwrap_or(false)
 }
 
-pub fn dir_empty(path: &String) -> bool {
-    PathBuf::from(path).read_dir().map(|mut i| i.next().is_none()).unwrap_or(false)
-}
-
-pub fn file_exists(path: &String) -> bool {
-    return Path::new(path).is_file();
-    // if let Ok(path_metadata) = fs::metadata(&dir) {
-    //     return path_metadata.is_file();
-    // }
-    // return false;
-}
-
-fn create_and_write_file(path: &str, name: &str, contents: &str) -> io::Result<()> {
-    let mut file = fs::File::create(join_path(&path, name))?;
+fn create_and_write_file(path: &PathBuf, name: &str, contents: &str) -> io::Result<()> {
+    let mut path = path.clone();
+    path.push(name);
+    let mut file = fs::File::create(path)?;
     file.write(contents.as_bytes())?;
     Ok(())
 }

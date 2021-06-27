@@ -86,9 +86,7 @@ pub fn main() -> Result<()> {
             Some("hash-object") => println!("Git hash-object was used"),
             Some("init") => {
                 if let Some(args) = matches.subcommand_matches("init") {
-                    if let Some(dir) = dir.to_str() {
-                        commands::init(dir, args)?
-                    }
+                    commands::init(dir, args)?
                 };
             },
             Some("log") => println!("Git log was used"),
