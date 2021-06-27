@@ -50,13 +50,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
-name = "block-buffer"
-version = "0.9.0"
+name = "bswap"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4152116fd6e9dadb291ae18fc1ec3575ed6d84c29642d97890f4b4a3417297e4"
-dependencies = [
- "generic-array",
-]
+checksum = "e3acc5ce9c60e68df21b877f13f908ef95c89f01cb6c656cf76ba95f10bc72f5"
 
 [[package]]
 name = "cfg-if"
@@ -86,15 +83,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7201ee416d124d589a820111ba755930df8b75855321a9a1b87312a0597ec8f"
 
 [[package]]
-name = "cpufeatures"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66c99696f6c9dd7f35d486b9d04d7e6e202aa3e8c40d553f2fdf5e7e0c6a71ef"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "crc32fast"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -108,15 +96,6 @@ name = "difference"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "524cbf6897b527295dff137cec09ecf3a05f4fddffd7dfcd1585403449e74198"
-
-[[package]]
-name = "digest"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
-dependencies = [
- "generic-array",
-]
 
 [[package]]
 name = "downcast"
@@ -152,16 +131,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69a039c3498dc930fe810151a34ba0c1c70b02b8625035592e74432f678591f2"
 
 [[package]]
-name = "generic-array"
-version = "0.14.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "501466ecc8a30d1d3b7fc9229b122b2ce8ed6e9d9223f1138d4babb253e51817"
-dependencies = [
- "typenum",
- "version_check",
-]
-
-[[package]]
 name = "hermit-abi"
 version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -179,7 +148,7 @@ dependencies = [
  "flate2",
  "mockall",
  "regex",
- "sha-1",
+ "sha",
 ]
 
 [[package]]
@@ -253,12 +222,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opaque-debug"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
-
-[[package]]
 name = "predicates"
 version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -323,16 +286,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
 
 [[package]]
-name = "sha-1"
-version = "0.9.6"
+name = "sha"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c4cfa741c5832d0ef7fab46cabed29c2aae926db0b11bb2069edd8db5e64e16"
+checksum = "4208d5a903276a9f3b797afdf6c5bc12a8da1344b053b100abf3565ecc80cb7e"
 dependencies = [
- "block-buffer",
- "cfg-if",
- "cpufeatures",
- "digest",
- "opaque-debug",
+ "bswap",
 ]
 
 [[package]]
@@ -368,12 +327,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7f741b240f1a48843f9b8e0444fb55fb2a4ff67293b50a9179dfd5ea67f8d41"
 
 [[package]]
-name = "typenum"
-version = "1.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "879f6906492a7cd215bfa4cf595b600146ccfac0c79bcbd1f3000162af5e8b06"
-
-[[package]]
 name = "unicode-width"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -390,12 +343,6 @@ name = "vec_map"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
-
-[[package]]
-name = "version_check"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
 
 [[package]]
 name = "winapi"

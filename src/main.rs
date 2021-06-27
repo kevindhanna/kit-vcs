@@ -17,8 +17,8 @@ pub fn main() -> Result<()> {
                          .help("The file to add")
                          .required(true)))
         .subcommand(SubCommand::with_name("cat-file")
-                    .arg(Arg::with_name("FILE")
-                         .help("Show the contents of a version controlled file")
+                    .arg(Arg::with_name("OBJECT")
+                         .help("The controlled object")
                          .required(true)))
         .subcommand(SubCommand::with_name("checkout")
                     .arg(Arg::with_name("REF")
@@ -80,7 +80,11 @@ pub fn main() -> Result<()> {
     if args.is_empty() {
         match matches.subcommand_name() {
             Some("add") => println!("Git add was used"),
-            Some("cat-file") => println!("Git cat-file was used"),
+            Some("cat-file") => {
+                if let Some(args) = matches.subcommand_matches("cat-file") {
+                    commands::cat_file(dir, args)?
+                };
+            }
             Some("checkout") => println!("Git checkout was used"),
             Some("commit") => println!("Git commit was used"),
             Some("hash-object") => println!("Git hash-object was used"),
