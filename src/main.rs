@@ -31,9 +31,20 @@ pub fn main() -> Result<()> {
                          .help("Commit message")
                          .required(true)))
         .subcommand(SubCommand::with_name("hash-object")
-                    .arg(Arg::with_name("FILE")
-                         .help("File to hash?")
-                         .required(true)))
+                    .arg(Arg::with_name("OBJECT")
+                         .help("Object to hash")
+                         .required(true))
+                    .arg(Arg::with_name("write")
+                         .short("w")
+                         .long("write")
+                         .multiple(false)
+                         .help("Actually write this object to the database"))
+                    .arg(Arg::with_name("type")
+                         .short("t")
+                         .long("type")
+                         .value_name("TYPE")
+                         .multiple(false)
+                         .help("What type of kit object (commit, tag, tree, blob - default)")))
         .subcommand(SubCommand::with_name("init")
                     .help("Initialize a new, empty repository.")
                     .arg(Arg::with_name("PATH")
@@ -87,7 +98,11 @@ pub fn main() -> Result<()> {
             }
             Some("checkout") => println!("Git checkout was used"),
             Some("commit") => println!("Git commit was used"),
-            Some("hash-object") => println!("Git hash-object was used"),
+            Some("hash-object") => {
+                if let Some(args) = matches.subcommand_matches("hash-object") {
+                    commands::hash_file(dir, args)?
+                };
+            }
             Some("init") => {
                 if let Some(args) = matches.subcommand_matches("init") {
                     commands::init(dir, args)?

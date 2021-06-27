@@ -54,7 +54,7 @@ filemode=false
 bare=false\n")
 }
 
-pub fn create(path: PathBuf) -> io::Result<()> {
+pub fn create(path: PathBuf) -> io::Result<KitRepository> {
     if let Ok(repo) = KitRepository::new(path, true) {
         if !repo.worktree.exists() {
             std::fs::create_dir_all(&repo.worktree)?
@@ -79,7 +79,7 @@ pub fn create(path: PathBuf) -> io::Result<()> {
         create_and_write_file(&repo.kitdir, "HEAD", "ref: refs/heads/master\n")?;
         create_and_write_file(&repo.kitdir, "config", &default_config())?;
 
-        return Ok(())
+        return Ok(repo)
     }
     let err = Error::new(ErrorKind::Other, "Failed to create repository struct".to_owned());
     Err(err)
@@ -157,13 +157,37 @@ impl KitRepository {
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn assert_dir(mut path: PathBuf, dir: &str) {
+        path.push(dir);
+        assert!(path.is_dir());
+    }
+
+    fn assert_file(mut path: PathBuf, file: &str) {
+        path.push(file);
+        assert!(path.is_file());
+    }
+
     #[test]
-    fn it_returns_a_full_repo_path() {
-        let repo = self::KitRepository::new("/mr/burns/and/me", true).unwrap();
-        assert_eq!("/mr/burns/and/me/.kit/forever", self::path(&repo, "forever"));
+    fn it_creates_a_kit_repo() {
+        let root = std::env::current_dir().unwrap();
+        let mut dir = root.clone();
+        dir.push("testing");
+        dir.push("repo");
+        create(dir.clone()).unwrap();
+        let mut kit = dir.clone();
+        kit.push(".kit");
+        assert!(kit.is_dir());
+        for d in ["branches", "objects", "refs", "refs/tags", "refs/heads"] {
+            assert_dir(kit.clone(), d);
+        };
+        for f in ["description", "HEAD", "config"] {
+            assert_file(kit.clone(), f);
+        }
+        fs::remove_dir_all(dir).unwrap();
     }
 }

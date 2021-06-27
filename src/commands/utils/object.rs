@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::path::PathBuf;
 use std::default::Default;
 use std::io::{Error, ErrorKind, Result};
 use std::io::prelude::*;
@@ -68,13 +69,13 @@ pub enum ObjectFormat {
     Blob
 }
 impl ObjectFormat {
-    pub fn from_str(s: &str) -> ObjectFormat {
+    pub fn from_str(s: &str) -> Result<ObjectFormat> {
         match s {
-            "commit" => ObjectFormat::Commit,
-            "tree" => ObjectFormat::Tree,
-            "tag" => ObjectFormat::Tag,
-            "blob" => ObjectFormat::Blob,
-            _ => unreachable!()
+            "commit" => Ok(ObjectFormat::Commit),
+            "tree" => Ok(ObjectFormat::Tree),
+            "tag" => Ok(ObjectFormat::Tag),
+            "blob" => Ok(ObjectFormat::Blob),
+            _ => Err(Error::new(ErrorKind::InvalidInput, "Invalid Object Format"))
         }
     }
     pub fn from_obj(obj: &KitObject) -> ObjectFormat {
@@ -113,7 +114,7 @@ pub fn write(obj: KitObject, actually_write: bool) -> Result<String> {
     let sha = Sha1::default().digest(result.as_bytes()).to_hex();
 
     if actually_write {
-        let path = repo::file(&obj.repo(), vec!("objects", &sha[0..=2], &sha[2..]), actually_write)?;
+        let path = repo::file(&obj.repo(), vec!("objects", &sha[0..2], &sha[2..]), actually_write)?;
         let mut file = File::create(path)?;
         let mut z = ZlibEncoder::new(&mut file, Compression::fast());
         z.write_all(result.as_bytes())?;
@@ -132,7 +133,7 @@ pub fn read(repo: repo::KitRepository , sha: &str) -> Result<KitObject> {
     let mut data = String::new();
     z.read_to_string(&mut data)?;
     let x = data.find(' ').unwrap();
-    let format = ObjectFormat::from_str(&data[0..x]);
+    let format = ObjectFormat::from_str(&data[0..x])?;
 
     let y = data.find('\x00').unwrap();
     let size = &data[(x + 1)..y];
@@ -156,10 +157,61 @@ pub fn read(repo: repo::KitRepository , sha: &str) -> Result<KitObject> {
         ObjectFormat::Blob => {
             Ok(KitObject::Blob{repo, data: Some(contents)})
         }
-        _ => Err(Error::new(ErrorKind::Other, format!("Unkown type {} for object {}", format.as_string(), sha)))
+    }
+}
+
+pub fn hash(path: PathBuf, t: ObjectFormat, repo: Option<KitRepository>) -> Result<String> {
+    let mut file = File::open(path)?;
+    let mut buf = String::new();
+    file.read_to_string(&mut buf)?;
+    match repo {
+        Some(repo) => {
+            let obj = match t {
+                ObjectFormat::Blob => KitObject::Blob{ repo, data: Some(buf) },
+                ObjectFormat::Commit => KitObject::Commit{ repo, data: Some(buf) },
+                ObjectFormat::Tree => KitObject::Tree{ repo, data: Some(buf) },
+                ObjectFormat::Tag => KitObject::Tag{ repo, data: Some(buf) },
+            };
+            println!("actually writing");
+            return write(obj, true);
+        }
+        None => {
+            let repo = repo::KitRepository::new(PathBuf::new(), true)?;
+            let obj = match t {
+                ObjectFormat::Blob => KitObject::Blob{ repo, data: Some(buf) },
+                ObjectFormat::Commit => KitObject::Commit{ repo, data: Some(buf) },
+                ObjectFormat::Tree => KitObject::Tree{ repo, data: Some(buf) },
+                ObjectFormat::Tag => KitObject::Tag{ repo, data: Some(buf) },
+            };
+            println!("not writing");
+            return write(obj, false)
+        }
     }
 }
 
 pub fn find(repo: repo::KitRepository, name: String, format: ObjectFormat, follow: bool) -> String {
     return name
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_stores_an_object() {
+        let root = std::env::current_dir().unwrap();
+        let mut dir = root.clone();
+        dir.push("testing");
+        dir.push("object");
+        let repo = repo::create(dir.clone()).unwrap();
+        let obj = KitObject::Blob{ repo, data: Some("Hello Joe".to_owned()) };
+        let sha = self::write(obj, true).unwrap();
+        let mut kit = dir.clone();
+        kit.push(".kit");
+        kit.push("objects");
+        kit.push(&sha[0..2]);
+        kit.push(&sha[2..]);
+        assert!(kit.is_file());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 }
