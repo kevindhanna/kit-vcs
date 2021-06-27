@@ -1,0 +1,17 @@
+[package]
+name = "kit"
+version = "0.1.0"
+authors = ["Kevin Hanna <kevindhanna@live.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "2"
+configparser = "2"
+sha-1 = "0.9.6"
+regex = "1"
+flate2 = "1.0.20"
+
+[dev-dependencies]
+mockall = "0.9.1"
